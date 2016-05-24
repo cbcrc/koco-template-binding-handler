@@ -1,0 +1,24 @@
+{
+    "name": "koco-template-binding-handler",
+    "version": "0.1.0",
+    "homepage": "https://github.com/cbcrc/koco-template-binding-handler",
+    "authors": [
+        "fcharest <frederik.charest@radio-canada.ca>"
+    ],
+    "description": "Binding handler that support the \"text!\" plugin for requirejs",
+    "scripts": {
+        "build": "rm -rf dist && mkdir dist && cp -r src/* dist && rm -rf dist/*.js && babel src --out-dir dist --modules umd --presets es2015,stage-0"
+    },
+    "main":"src/template-binding-handler.js",
+    "keywords": [
+        "koco",
+        "requirejs",
+        "template"
+    ],
+    "license": "MIT",
+    "dependencies": {
+        "knockout": "~3.3.0",
+        "requirejs": "~2.1.18",
+        "requirejs-text": "~2.0.14"
+    }
+}

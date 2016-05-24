@@ -5,119 +5,118 @@
  * Extends the template binding handler to be able to load external templates by using the require's text plugin.
  * Code based on https://github.com/rniemeyer/knockout-amd-helpers/blob/master/src/amdTemplateEngine.js
  **/
-define(['knockout', 'require'],
-    function(ko, require) {
-        'use strict';
+import ko from 'knockout';
+import require from 'require';
 
-        //get a new native template engine to start with
-        var engine = new ko.nativeTemplateEngine(),
-            sources = {};
 
-        engine.defaultPath = '';
-        engine.defaultSuffix = '.html';
-        engine.defaultRequireTextPluginName = 'text';
+//get a new native template engine to start with
+var engine = new ko.nativeTemplateEngine(),
+    sources = {};
 
-        //create a template source that loads its template using the require.js text plugin
-        ko.templateSources.requireTemplate = function(key) {
-            this.key = key;
-            this.template = ko.observable(' '); //content has to be non-falsey to start with
-            this.requested = false;
-            this.retrieved = false;
-        };
+engine.defaultPath = '';
+engine.defaultSuffix = '.html';
+engine.defaultRequireTextPluginName = 'text';
 
-        ko.templateSources.requireTemplate.prototype.text = function() {
-            //when the template is retrieved, check if we need to load it
-            if (!this.requested && this.key) {
-                require([engine.defaultRequireTextPluginName + '!' + addTrailingSlash(engine.defaultPath) + this.key + engine.defaultSuffix], function(templateContent) {
-                    this.retrieved = true;
-                    this.template(templateContent);
-                }.bind(this));
+//create a template source that loads its template using the require.js text plugin
+ko.templateSources.requireTemplate = function(key) {
+    this.key = key;
+    this.template = ko.observable(' '); //content has to be non-falsey to start with
+    this.requested = false;
+    this.retrieved = false;
+};
 
-                this.requested = true;
-            }
+ko.templateSources.requireTemplate.prototype.text = function() {
+    //when the template is retrieved, check if we need to load it
+    if (!this.requested && this.key) {
+        require([engine.defaultRequireTextPluginName + '!' + addTrailingSlash(engine.defaultPath) + this.key + engine.defaultSuffix], function(templateContent) {
+            this.retrieved = true;
+            this.template(templateContent);
+        }.bind(this));
 
-            //if template is currently empty, then clear it
-            if (!this.key) {
-                this.template('');
-            }
+        this.requested = true;
+    }
 
-            //always return the current template
-            if (arguments.length === 0) {
-                return this.template();
-            }
-        };
+    //if template is currently empty, then clear it
+    if (!this.key) {
+        this.template('');
+    }
 
-        //our engine needs to understand when to create a 'requireTemplate' template source
-        engine.makeTemplateSource = function(template, doc) {
-            var el;
+    //always return the current template
+    if (arguments.length === 0) {
+        return this.template();
+    }
+};
 
-            //if a name is specified
-            if (typeof template === 'string') {
-                //if there is an element with this id and it is a script tag, then use it
-                el = (doc || document).getElementById(template);
+//our engine needs to understand when to create a 'requireTemplate' template source
+engine.makeTemplateSource = function(template, doc) {
+    var el;
 
-                if (el && el.tagName.toLowerCase() === 'script') {
-                    return new ko.templateSources.domElement(el);
-                }
+    //if a name is specified
+    if (typeof template === 'string') {
+        //if there is an element with this id and it is a script tag, then use it
+        el = (doc || document).getElementById(template);
 
-                //otherwise pull the template in using the AMD loader's text plugin
-                if (!(template in sources)) {
-                    sources[template] = new ko.templateSources.requireTemplate(template);
-                }
-
-                //keep a single template source instance for each key, so everyone depends on the same observable
-                return sources[template];
-            }
-            //if there is no name (foreach/with) use the elements as the template, as normal
-            else if (template && (template.nodeType === 1 || template.nodeType === 8)) {
-                return new ko.templateSources.anonymousTemplate(template);
-            }
-        };
-
-        //override renderTemplate to properly handle afterRender prior to template being available
-        engine.renderTemplate = function(template, bindingContext, options, templateDocument) {
-            var templateSource,
-                existingAfterRender = options && options.afterRender,
-                localTemplate = options && options.templateProperty && bindingContext.$module && bindingContext.$module[options.templateProperty];
-
-            //restore the original afterRender, if necessary
-            if (existingAfterRender) {
-                existingAfterRender = options.afterRender = options.afterRender.original || options.afterRender;
-            }
-
-            //if a module is being loaded, and that module has the template property (of type `string` or `function`) - use that as the source of the template.
-            if (localTemplate && (typeof localTemplate === 'function' || typeof localTemplate === 'string')) {
-                templateSource = {
-                    text: function() {
-                        return typeof localTemplate === 'function' ? localTemplate.call(bindingContext.$module) : localTemplate;
-                    }
-                };
-            } else {
-                templateSource = engine.makeTemplateSource(template, templateDocument);
-            }
-
-            //wrap the existing afterRender, so it is not called until template is actually retrieved
-            if (typeof existingAfterRender === 'function' && templateSource instanceof ko.templateSources.requireTemplate && !templateSource.retrieved) {
-                options.afterRender = function() {
-                    if (templateSource.retrieved) {
-                        existingAfterRender.apply(this, arguments);
-                    }
-                };
-
-                //keep track of the original, so we don't double-wrap the function when template name changes
-                options.afterRender.original = existingAfterRender;
-            }
-
-            return engine.renderTemplateSource(templateSource, bindingContext, options);
-        };
-
-        //expose the template engine at least to be able to customize the path/suffix/plugin at run-time
-        ko.amdTemplateEngine = engine;
-
-        //make this new template engine our default engine
-        ko.setTemplateEngine(engine);
-
-        function addTrailingSlash (path) {
-            return path && path.replace(/\/?$/, '/');
+        if (el && el.tagName.toLowerCase() === 'script') {
+            return new ko.templateSources.domElement(el);
         }
-    });
+
+        //otherwise pull the template in using the AMD loader's text plugin
+        if (!(template in sources)) {
+            sources[template] = new ko.templateSources.requireTemplate(template);
+        }
+
+        //keep a single template source instance for each key, so everyone depends on the same observable
+        return sources[template];
+    }
+    //if there is no name (foreach/with) use the elements as the template, as normal
+    else if (template && (template.nodeType === 1 || template.nodeType === 8)) {
+        return new ko.templateSources.anonymousTemplate(template);
+    }
+};
+
+//override renderTemplate to properly handle afterRender prior to template being available
+engine.renderTemplate = function(template, bindingContext, options, templateDocument) {
+    var templateSource,
+        existingAfterRender = options && options.afterRender,
+        localTemplate = options && options.templateProperty && bindingContext.$module && bindingContext.$module[options.templateProperty];
+
+    //restore the original afterRender, if necessary
+    if (existingAfterRender) {
+        existingAfterRender = options.afterRender = options.afterRender.original || options.afterRender;
+    }
+
+    //if a module is being loaded, and that module has the template property (of type `string` or `function`) - use that as the source of the template.
+    if (localTemplate && (typeof localTemplate === 'function' || typeof localTemplate === 'string')) {
+        templateSource = {
+            text: function() {
+                return typeof localTemplate === 'function' ? localTemplate.call(bindingContext.$module) : localTemplate;
+            }
+        };
+    } else {
+        templateSource = engine.makeTemplateSource(template, templateDocument);
+    }
+
+    //wrap the existing afterRender, so it is not called until template is actually retrieved
+    if (typeof existingAfterRender === 'function' && templateSource instanceof ko.templateSources.requireTemplate && !templateSource.retrieved) {
+        options.afterRender = function() {
+            if (templateSource.retrieved) {
+                existingAfterRender.apply(this, arguments);
+            }
+        };
+
+        //keep track of the original, so we don't double-wrap the function when template name changes
+        options.afterRender.original = existingAfterRender;
+    }
+
+    return engine.renderTemplateSource(templateSource, bindingContext, options);
+};
+
+//expose the template engine at least to be able to customize the path/suffix/plugin at run-time
+ko.amdTemplateEngine = engine;
+
+//make this new template engine our default engine
+ko.setTemplateEngine(engine);
+
+function addTrailingSlash(path) {
+    return path && path.replace(/\/?$/, '/');
+}
