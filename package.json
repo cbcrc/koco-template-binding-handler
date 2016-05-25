@@ -12,13 +12,16 @@
   "main": "src/template-binding-handler.js",
   "keywords": [
     "koco",
-    "requirejs",
     "template"
   ],
   "license": "MIT",
   "dependencies": {
-    "knockout": "~3.3.0",
-    "requirejs": "~2.1.18",
-    "requirejs-text": "~2.0.14"
+    "knockout": "~3.4.0",
+    "koco": "^1.0.0"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.9.0",
+    "babel-preset-es2015": "^6.9.0",
+    "babel-preset-stage-0": "^6.5.0"
   }
 }
