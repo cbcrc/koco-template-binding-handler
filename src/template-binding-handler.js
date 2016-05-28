@@ -2,11 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 /**
- * Extends the template binding handler to be able to load external templates by using the require's text plugin.
+ * Extends the template binding handler to be able to load external templates
  * Code based on https://github.com/rniemeyer/knockout-amd-helpers/blob/master/src/amdTemplateEngine.js
  **/
 import ko from 'knockout';
-import require from 'require';
 
 
 //get a new native template engine to start with
@@ -17,7 +16,7 @@ engine.defaultPath = '';
 engine.defaultSuffix = '.html';
 engine.defaultRequireTextPluginName = 'text';
 
-//create a template source that loads its template using the require.js text plugin
+
 ko.templateSources.requireTemplate = function(key) {
     this.key = key;
     this.template = ko.observable(' '); //content has to be non-falsey to start with
@@ -28,10 +27,14 @@ ko.templateSources.requireTemplate = function(key) {
 ko.templateSources.requireTemplate.prototype.text = function() {
     //when the template is retrieved, check if we need to load it
     if (!this.requested && this.key) {
-        require([engine.defaultRequireTextPluginName + '!' + addTrailingSlash(engine.defaultPath) + this.key + engine.defaultSuffix], function(templateContent) {
+
+        // todo: isNpm?
+        const templateContent = require.context('../../../modules/', true, /.*\.(html)$/)(`./${this.key}${engine.defaultSuffix}`);
+        // require([engine.defaultRequireTextPluginName + '!' + addTrailingSlash(engine.defaultPath) + this.key + engine.defaultSuffix],
+        //     function(templateContent) {
             this.retrieved = true;
             this.template(templateContent);
-        }.bind(this));
+        //}.bind(this));
 
         this.requested = true;
     }
@@ -116,7 +119,3 @@ ko.amdTemplateEngine = engine;
 
 //make this new template engine our default engine
 ko.setTemplateEngine(engine);
-
-function addTrailingSlash(path) {
-    return path && path.replace(/\/?$/, '/');
-}

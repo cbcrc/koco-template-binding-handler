@@ -1,21 +1,19 @@
 (function (global, factory) {
     if (typeof define === "function" && define.amd) {
-        define(['knockout', 'require'], factory);
+        define(['knockout'], factory);
     } else if (typeof exports !== "undefined") {
-        factory(require('knockout'), require('require'));
+        factory(require('knockout'));
     } else {
         var mod = {
             exports: {}
         };
-        factory(global.knockout, global.require);
+        factory(global.knockout);
         global.templateBindingHandler = mod.exports;
     }
-})(this, function (_knockout, _require2) {
+})(this, function (_knockout) {
     'use strict';
 
     var _knockout2 = _interopRequireDefault(_knockout);
-
-    var _require3 = _interopRequireDefault(_require2);
 
     function _interopRequireDefault(obj) {
         return obj && obj.__esModule ? obj : {
@@ -24,21 +22,20 @@
     }
 
     //get a new native template engine to start with
-    // Copyright (c) CBC/Radio-Canada. All rights reserved.
+    var engine = new _knockout2.default.nativeTemplateEngine(),
+        sources = {}; // Copyright (c) CBC/Radio-Canada. All rights reserved.
     // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
     /**
-     * Extends the template binding handler to be able to load external templates by using the require's text plugin.
+     * Extends the template binding handler to be able to load external templates
      * Code based on https://github.com/rniemeyer/knockout-amd-helpers/blob/master/src/amdTemplateEngine.js
      **/
-    var engine = new _knockout2.default.nativeTemplateEngine(),
-        sources = {};
+
 
     engine.defaultPath = '';
     engine.defaultSuffix = '.html';
     engine.defaultRequireTextPluginName = 'text';
 
-    //create a template source that loads its template using the require.js text plugin
     _knockout2.default.templateSources.requireTemplate = function (key) {
         this.key = key;
         this.template = _knockout2.default.observable(' '); //content has to be non-falsey to start with
@@ -49,10 +46,14 @@
     _knockout2.default.templateSources.requireTemplate.prototype.text = function () {
         //when the template is retrieved, check if we need to load it
         if (!this.requested && this.key) {
-            (0, _require3.default)([engine.defaultRequireTextPluginName + '!' + addTrailingSlash(engine.defaultPath) + this.key + engine.defaultSuffix], function (templateContent) {
-                this.retrieved = true;
-                this.template(templateContent);
-            }.bind(this));
+
+            // todo: isNpm?
+            var templateContent = require.context('../../../modules/', true, /.*\.(html)$/)('./' + this.key + engine.defaultSuffix);
+            // require([engine.defaultRequireTextPluginName + '!' + addTrailingSlash(engine.defaultPath) + this.key + engine.defaultSuffix],
+            //     function(templateContent) {
+            this.retrieved = true;
+            this.template(templateContent);
+            //}.bind(this));
 
             this.requested = true;
         }
@@ -137,8 +138,4 @@
 
     //make this new template engine our default engine
     _knockout2.default.setTemplateEngine(engine);
-
-    function addTrailingSlash(path) {
-        return path && path.replace(/\/?$/, '/');
-    }
 });
